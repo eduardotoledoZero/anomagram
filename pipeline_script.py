@@ -14,6 +14,7 @@ from nltk.corpus import stopwords
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import joblib
+import threading
 
 # Function to set joblib backend
 def set_joblib_backend():
@@ -158,59 +159,78 @@ def select_directory(prompt):
     root.update()
     return folder_path
 
-# Main function
-def main():
-    print("Starting script")
-    data_directory = select_directory("Select the data directory")
-    sector_filepath = os.path.join(data_directory, 'sector_economico_clientes.csv')
-    output_directory = select_directory("Select the output directory")
+# Main function to run in a thread
+def threaded_main(progress_label, start_button):
+    try:
+        progress_label.config(text="Starting script...")
+        data_directory = select_directory("Select the data directory")
+        sector_filepath = os.path.join(data_directory, 'sector_economico_clientes.csv')
+        output_directory = select_directory("Select the output directory")
 
-    # Ensure output directory exists
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+        # Ensure output directory exists
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
 
-    output_filepath_bronze = os.path.join(output_directory, 'consumo_datamart_bronze.csv')
-    output_filepath_silver = os.path.join(output_directory, 'consumo_datamart_silver.csv')
-    output_filepath_gold = os.path.join(output_directory, 'consumo_datamart_gold.csv')
+        output_filepath_bronze = os.path.join(output_directory, 'consumo_datamart_bronze.csv')
+        output_filepath_silver = os.path.join(output_directory, 'consumo_datamart_silver.csv')
+        output_filepath_gold = os.path.join(output_directory, 'consumo_datamart_gold.csv')
 
-    # Preprocessing STEP
-    combined_df = process_customer_data(sector_filepath, data_directory, output_filepath_bronze)
+        progress_label.config(text="Preprocessing STEP...")
+        # Preprocessing STEP
+        combined_df = process_customer_data(sector_filepath, data_directory, output_filepath_bronze)
 
-    # New Features Enrichment STEP (Factor_potencia)
-    combined_df = add_new_features(combined_df, output_filepath_silver)
+        progress_label.config(text="New Features Enrichment STEP...")
+        # New Features Enrichment STEP (Factor_potencia)
+        combined_df = add_new_features(combined_df, output_filepath_silver)
 
-    # Clustering STEP (4 clusters)
-    combined_df['Cluster'] = clustering(combined_df)
+        progress_label.config(text="Clustering STEP...")
+        # Clustering STEP (4 clusters)
+        combined_df['Cluster'] = clustering(combined_df)
 
-    # Anomalies Detection with a global unique model STEP
-    combined_df = detect_global_anomalies(combined_df)
+        progress_label.config(text="Anomalies Detection Model Running STEP...")
+        # Anomalies Detection with a global unique model STEP
+        combined_df = detect_global_anomalies(combined_df)
 
-    # Anomalies Detection with a model per sector STEP
-    combined_df = detect_sector_anomalies(combined_df)
+        #progress_label.config(text="Anomalies Detection with a model per sector STEP...")
+        # Anomalies Detection with a model per sector STEP
+        #combined_df = detect_sector_anomalies(combined_df)
 
-    # Anomalies Detection with a model per cluster STEP
-    combined_df = detect_cluster_anomalies(combined_df)
+        #progress_label.config(text="Anomalies Detection with a model per cluster STEP...")
+        # Anomalies Detection with a model per cluster STEP
+        #combined_df = detect_cluster_anomalies(combined_df)
 
-    # Save results
-    combined_df.to_csv(output_filepath_gold, index=False)
-    print(f'Combined dataset saved to {output_filepath_gold}')
-    print(combined_df.head())
+        progress_label.config(text="Saving results...")
+        # Save results
+        combined_df.to_csv(output_filepath_gold, index=False)
+        progress_label.config(text=f'Combined dataset saved to {output_filepath_gold}')
+        print(combined_df.head())
+        
+        messagebox.showinfo("Success", "Data processing completed successfully!")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+    finally:
+        start_button.config(state=tk.NORMAL)
+        progress_label.config(text="")
 
+# Function to create the main GUI window
 # Function to create the main GUI window
 def create_gui():
     root = tk.Tk()
     root.title("Data Processing Pipeline")
 
-    tk.Label(root, text="Data Processing Pipeline", font=("Helvetica", 16)).pack(pady=10)
+     # Maximize the window
+    root.state('zoomed')
+    
+    tk.Label(root, text="Data Processing Pipeline", font=("Helvetica", 16)).pack(pady=40)
+    progress_label = tk.Label(root, text="", font=("Helvetica", 12))
+    progress_label.pack(pady=10)
 
     def on_start():
-        try:
-            main()
-            messagebox.showinfo("Success", "Data processing completed successfully!")
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred: {e}")
+        start_button.config(state=tk.DISABLED)
+        threading.Thread(target=threaded_main, args=(progress_label, start_button)).start()
 
-    tk.Button(root, text="Start Processing", command=on_start, font=("Helvetica", 12)).pack(pady=20)
+    start_button = tk.Button(root, text="Start Processing", command=on_start, font=("Helvetica", 12))
+    start_button.pack(pady=20)
 
     root.mainloop()
 
