@@ -159,7 +159,7 @@ def select_directory(prompt):
     root.update()
     return folder_path
 
-# Main function to run in a thread
+# Main function to run in a thread and avoid GUI blocking
 def threaded_main(progress_label, start_button):
     try:
         progress_label.config(text="Starting script...")
@@ -191,14 +191,6 @@ def threaded_main(progress_label, start_button):
         # Anomalies Detection with a global unique model STEP
         combined_df = detect_global_anomalies(combined_df)
 
-        #progress_label.config(text="Anomalies Detection with a model per sector STEP...")
-        # Anomalies Detection with a model per sector STEP
-        #combined_df = detect_sector_anomalies(combined_df)
-
-        #progress_label.config(text="Anomalies Detection with a model per cluster STEP...")
-        # Anomalies Detection with a model per cluster STEP
-        #combined_df = detect_cluster_anomalies(combined_df)
-
         progress_label.config(text="Saving results...")
         # Save results
         combined_df.to_csv(output_filepath_gold, index=False)
@@ -212,7 +204,6 @@ def threaded_main(progress_label, start_button):
         start_button.config(state=tk.NORMAL)
         progress_label.config(text="")
 
-# Function to create the main GUI window
 # Function to create the main GUI window
 def create_gui():
     root = tk.Tk()
