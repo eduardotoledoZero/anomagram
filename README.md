@@ -153,13 +153,16 @@ The model with the best silhouette score is chosen, which in this case is the Is
 
 This pipeline processes historical energy consumption data, enriches it with new features, segments it, and detects anomalies. It integrates preprocessing steps, feature extraction, clustering, and anomaly detection using advanced machine learning techniques.
 
-Pipeline Steps
+Pipeline steps
 1. Preprocessing
 ETL Process: Consolidate multiple CSV files containing customer consumption data into a unified dataset.
 Normalization: Standardize text data for economic sectors using NLTK.
-2. Feature Enrichment
-New Features: Add power factor and decompose the date into cyclic components (month, day of the week, hour) to capture temporal patterns.
+
+2. Feature enrichment
+Add power factor and decompose the date into cyclic components (month, day of the week, hour) to capture temporal patterns.
+
 3. Clustering
 K-Means Clustering: Segment data into clusters to identify distinct consumption patterns.
+
 4. Anomaly Detection
 Isolation Forest: Detect anomalies globally, by sector, and by cluster to ensure robust anomaly detection.
