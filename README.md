@@ -1,4 +1,4 @@
-# Anomalies Detection in Electrical Sector Consumption
+# Anomaly Detection in Energy Consumption
 
 
 Analytical model using historical energy consumption data from PowerElec's unregulated customers to detect anomalies in their consumption patterns, to conduct technical reviews on their internal facilities or the distribution network supplying them with energy, and implement technical measures to minimize technical and non-technical losses.
@@ -13,7 +13,8 @@ This code was developed in a Windows Machine with 7 cores and 32GB and using an 
 4. [Features Selection and Extraction](#features-selection-and-extraction)
 5. [Clustering](#clustering)
 6. [Anomalies Detection Models](#anomalies-detection-models)
-7. [Licencia](#licencia)
+7. [Model Selection](#model-selection)
+8. [Integration Pipeline ](#integration-pipeline)
 
 ## Installation
 
@@ -93,3 +94,72 @@ By Sector: A label (1 for inlier, -1 for outlier) and an anomaly score were dete
 By Cluster: Similarly, a label and score were assigned to each observation using a model specific to each cluster. Parameter contamination calibration was applied for each cluster to obtain the best silhouette index and calculate anomalies.
 Final Model Selection: To determine the most effective model, the labels resulting from the models trained by Cluster were evaluated, and the corresponding silhouette indices were calculated. Isolation Forest in the perspective global with a factor of contamination of 5%, presented the best silhouette index, and hence, it was selected as the definitive model. From this model, a 'gold' state datamart was generated, including all observations along with their anomaly scores. This datamart will be used in the application layer.
 
+## Model Selection
+[Notebook for this section](https://github.com/eduardotoledoZero/anomagram/blob/master/step_5.0%20anomalies_detection_benchmark.ipynb)</br>
+
+In this section, different anomaly detection models are compared  based on their silhouette scores. The silhouette score is used as a metric to understand how well the models differentiate between normal and anomalous data. The model with the highest silhouette score is selected as the final model for anomaly detection.
+
+<table>
+<tr> 
+  <th>Model</th>
+  <th>Silhouette Score</th>
+</tr>
+<tr style="background-color:blue;">
+  <td>Isolation Forest / Unique Global Model</td>
+  <td>0.4317</td>
+</tr>
+<tr>
+  <td>Isolation Forest / Models by Sector</td>
+  <td>0.2743</td>
+</tr>
+<tr>
+  <td>Isolation Forest / Models by Cluster</td>
+  <td>0.3257</td>
+</tr>
+<tr>
+  <td>Local Outlier Factor / Unique Global Model</td>
+  <td>-0.021</td>
+</tr>
+<tr>
+  <td>Local Outlier Factor / Models by Sector</td>
+  <td>0.063</td>
+</tr>
+<tr>
+  <td>Local Outlier Factor / Models by Cluster</td>
+  <td>0.023</td>
+</tr>
+<tr>
+  <td>OneClassSVM / Unique Global Model</td>
+  <td>0.3926</td>
+</tr>
+<tr>
+  <td>OneClassSVM / Models by Sector</td>
+  <td>0.2527</td>
+</tr>
+<tr>
+  <td>OneClassSVM / Models by Cluster</td>
+  <td>0.2923</td>
+</tr>
+<tr>
+  <td>HDBSCAN</td>
+  <td>0.10099</td>
+</tr>
+</table>
+The model with the best silhouette score is chosen, which in this case is the Isolation Forest with a score of 0.4317. Although this score is only moderately significant, it provides a valuable metric in the unsupervised context, allowing us to rely on it for effective anomaly detection.
+
+## Integration Pipeline
+
+[Notebook for this section](https://github.com/eduardotoledoZero/anomagram/blob/master/pipeline_script.py)</br>
+
+This pipeline processes historical energy consumption data, enriches it with new features, segments it, and detects anomalies. It integrates preprocessing steps, feature extraction, clustering, and anomaly detection using advanced machine learning techniques.
+
+Pipeline Steps
+1. Preprocessing
+ETL Process: Consolidate multiple CSV files containing customer consumption data into a unified dataset.
+Normalization: Standardize text data for economic sectors using NLTK.
+2. Feature Enrichment
+New Features: Add power factor and decompose the date into cyclic components (month, day of the week, hour) to capture temporal patterns.
+3. Clustering
+K-Means Clustering: Segment data into clusters to identify distinct consumption patterns.
+4. Anomaly Detection
+Isolation Forest: Detect anomalies globally, by sector, and by cluster to ensure robust anomaly detection.
