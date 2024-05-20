@@ -166,3 +166,28 @@ K-Means Clustering: Segment data into clusters to identify distinct consumption 
 
 4. Anomaly Detection
 Isolation Forest: Detect anomalies globally, by sector, and by cluster to ensure robust anomaly detection.
+
+
+The ouput is a datarma in gold state with the following streucture:
+| **Column**           | **Data Type** | **Details**                                       |
+|----------------------|---------------|---------------------------------------------------|
+| Fecha                | Object        |                                                   |
+| Active_Energy        | Float64       |                                                   |
+| Reactive_Energy      | Float64       |                                                   |
+| Voltaje_FA           | Float64       |                                                   |
+| Voltaje_FC           | Float64       |                                                   |
+| Factor_Potencia      | Float64       |                                                   |
+| ClienteId            | Int64         | Cardinality: 1 to 30.                             |
+| Sector_Economico     | Object        |                                                   |
+| DiaSemana            | Int64         | 0: Monday, 6: Sunday                              |
+| Hora                 | Int64         |                                                   |
+| Mes                  | Int64         |                                                   |
+| Dia_Sin              | Float64       | Cyclical encoding of the day of the week.         |
+| Dia_Cos              | Float64       | Cyclical encoding of the day of the week.         |
+| Hora_Sin             | Float64       | Cyclical encoding of the hour.                    |
+| Hora_Cos             | Float64       | Cyclical encoding of the hour.                    |
+| Mes_Sin              | Float64       | Cyclical encoding of the month.                   |
+| Mes_Cos              | Float64       | Cyclical encoding of the month.                   |
+| Cluster              | Int64         | 0,1,2,3                                           |
+| Anomaly_Global       | Int64         | 1: Inlier  -1: Outlier                            |
+| Anomaly_Score_Global | Float64       |                                                   |
