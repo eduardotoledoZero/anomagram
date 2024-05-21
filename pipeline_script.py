@@ -1,4 +1,5 @@
 import configparser
+import sys
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -40,16 +41,14 @@ def load_configuration():
 # Load configuration
 try:
     config = load_configuration()
-    contamination_factor = float(config['Settings']['contamination_factor'])
-    num_clusters = int(config['Settings']['clusters'])
+    contamination_factor = float(config['IsolationForest']['contamination_factor'])
+    num_clusters = int(config['KMeans']['clusters'])
+    num_estimators = int(config['IsolationForest']['num_estimators'])
+    
 except FileNotFoundError as e:
     print(e)
-    exit(1)
+    sys.exit(1)
 
-
-# Extract contamination factor and cluster number from config
-contamination_factor = float(config['Settings']['contamination_factor'])
-num_clusters = int(config['Settings']['clusters'])
 
 # Function to process customer data
 def process_customer_data(sector_filepath, data_directory, output_filepath=None):
@@ -105,9 +104,9 @@ def add_new_features(df, output_filepath):
     return df
 
 # Function to detect anomalies using IsolationForest
-def get_anomalies(df, contamination=0.05):
+def get_anomalies(df, contamination=0.05, n_estimators=100):
     df_copy = df.copy()
-    iso_forest = IsolationForest(n_estimators=100, contamination=contamination, random_state=42, n_jobs=1)
+    iso_forest = IsolationForest(n_estimators=n_estimators, contamination=contamination, random_state=42, n_jobs=1)
     iso_forest.fit(df_copy)
     preds = iso_forest.predict(df_copy)
     anomaly_score = iso_forest.decision_function(df_copy)
@@ -136,7 +135,9 @@ def detect_global_anomalies(df, contamination_factor=contamination_factor):
     df['Anomaly'] = pd.NA
     df['Anomaly_Score_Global'] = pd.NA
     data = df[final_features]
-    data[final_features + ['Anomaly', 'Anomaly_Score_Global']] = get_anomalies(data,contamination=contamination_factor)
+    data[final_features + ['Anomaly', 'Anomaly_Score_Global']] = get_anomalies(data,
+                                                                               contamination=contamination_factor,
+                                                                               n_estimators=num_estimators)
     df.update(data[['Anomaly', 'Anomaly_Score_Global']])
     df.rename(columns={'Anomaly': 'Anomaly_Global'}, inplace=True)
     return df
@@ -211,12 +212,14 @@ def create_gui():
     root = tk.Tk()
     root.title("Data Processing Pipeline")
 
-    splash = show_splash_screen()    
+    #splash = show_splash_screen()    
     # Maximize the window
     root.state('zoomed')
     
     tk.Label(root, text="Data Processing Pipeline", font=("Helvetica", 16)).pack(pady=40)
     tk.Label(root, text=f"Factor de Contaminación: {contamination_factor}", font=("Helvetica", 12)).pack(pady=20)
+    tk.Label(root, text=f"Estimadores Number: {num_estimators}", font=("Helvetica", 12)).pack(pady=20)
+    
     tk.Label(root, text=f"Clusters: {num_clusters}", font=("Helvetica", 12)).pack(pady=20)
     
     progress_label = tk.Label(root, text="", font=("Helvetica", 12))
@@ -229,7 +232,7 @@ def create_gui():
     start_button = tk.Button(root, text="Start Processing", command=on_start, font=("Helvetica", 12))
     start_button.pack(pady=20)
 
-    root.after(3000, splash.destroy)
+    #root.after(3000, splash.destroy)
     root.mainloop()
 
 if __name__ == "__main__":
