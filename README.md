@@ -155,20 +155,25 @@ This pipeline processes historical energy consumption data, enriches it with new
 
 Pipeline steps
 1. Preprocessing
-ETL Process: Consolidate multiple CSV files containing customer consumption data into a unified dataset.
-Normalization: Standardize text data for economic sectors using NLTK.
 
-2. Feature enrichment
-Add power factor and decompose the date into cyclic components (month, day of the week, hour) to capture temporal patterns.
+Consolidate multiple CSV files containing customer consumption data into a unified dataset.
+Standardize text data for economic sectors using NLTK.
+
+2. Feature Enrichment
+
+Add the power factor and decompose the date into cyclic components (month, day of the week, hour) to capture temporal patterns.
 
 3. Clustering
-K-Means Clustering: Segment data into clusters to identify distinct consumption patterns.
+
+Clustering with K-Means: Segment the data into clusters to identify distinct consumption patterns. Four clusters are used.
 
 4. Anomaly Detection
-Isolation Forest: Detect anomalies globally, by sector, and by cluster to ensure robust anomaly detection.
+
+Isolation Forest: An Isolation Forest model with a contamination factor of 5% is used for anomaly detection.
 
 
-The ouput is a datarma in gold state with the following streucture:
+The ouput is a datamart in gold state with the following structure:
+
 | **Column**           | **Data Type** | **Details**                                       |
 |----------------------|---------------|---------------------------------------------------|
 | Fecha                | Object        |                                                   |

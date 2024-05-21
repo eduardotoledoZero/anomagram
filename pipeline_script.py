@@ -1,3 +1,4 @@
+import configparser
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -23,7 +24,32 @@ def set_joblib_backend():
     except ValueError as e:
         print(f"Warning: {e}. Proceeding without setting parallel backend.")
 
+
 set_joblib_backend()
+
+# Function to load configuration
+def load_configuration():
+    config = configparser.ConfigParser()
+    config_file = 'config.ini'
+    if not os.path.exists(config_file):
+        messagebox.showerror("Error", f"Configuration file '{config_file}' not found.")
+        raise FileNotFoundError(f"Configuration file '{config_file}' not found.")
+    config.read(config_file)
+    return config
+
+# Load configuration
+try:
+    config = load_configuration()
+    contamination_factor = float(config['Settings']['contamination_factor'])
+    num_clusters = int(config['Settings']['clusters'])
+except FileNotFoundError as e:
+    print(e)
+    exit(1)
+
+
+# Extract contamination factor and cluster number from config
+contamination_factor = float(config['Settings']['contamination_factor'])
+num_clusters = int(config['Settings']['clusters'])
 
 # Function to process customer data
 def process_customer_data(sector_filepath, data_directory, output_filepath=None):
@@ -90,12 +116,12 @@ def get_anomalies(df, contamination=0.05):
     return df_copy
 
 # Function for clustering
-def clustering(df):
+def clustering(df, n_clusters= num_clusters):
     features_to_scale = ['Active_energy', 'Reactive_energy', 'Voltaje_FA', 'Voltaje_FC', 'Factor_Potencia']
     X = df[features_to_scale]
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    optimal_k = 4
+    optimal_k = n_clusters
     kmeans = KMeans(n_clusters=optimal_k, random_state=42)
     kmeans.fit(X_scaled)
     labels = kmeans.labels_
@@ -103,53 +129,18 @@ def clustering(df):
     return df['Cluster']
 
 # Function to detect global anomalies
-def detect_global_anomalies(df):
+def detect_global_anomalies(df, contamination_factor=contamination_factor):
     features = ['Active_energy', 'Reactive_energy', 'Voltaje_FA', 'Voltaje_FC', 'Factor_Potencia']
     time_features = ['Dia_Sin', 'Dia_Cos', 'Hora_Sin', 'Hora_Cos', 'Mes_Sin', 'Mes_Cos']
     final_features = features + time_features
     df['Anomaly'] = pd.NA
     df['Anomaly_Score_Global'] = pd.NA
     data = df[final_features]
-    data[final_features + ['Anomaly', 'Anomaly_Score_Global']] = get_anomalies(data)
+    data[final_features + ['Anomaly', 'Anomaly_Score_Global']] = get_anomalies(data,contamination=contamination_factor)
     df.update(data[['Anomaly', 'Anomaly_Score_Global']])
     df.rename(columns={'Anomaly': 'Anomaly_Global'}, inplace=True)
     return df
 
-# Function to detect sector-specific anomalies
-def detect_sector_anomalies(df):
-    contamination_df = pd.read_csv('../data/output/contamination_factor_sector_isoforest.csv')
-    results = []
-    sectors = sorted(list(df['Sector_Economico'].unique()))
-    features = ['Active_energy', 'Reactive_energy', 'Voltaje_FA', 'Voltaje_FC', 'Factor_Potencia']
-    time_features = ['Dia_Sin', 'Dia_Cos', 'Hora_Sin', 'Hora_Cos', 'Mes_Sin', 'Mes_Cos']
-    final_features = features + time_features
-    df['Anomaly_Score_Sector'] = pd.NA
-    df['Anomaly'] = pd.NA
-    for sector in sectors:
-        data_orig = df[df['Sector_Economico'] == sector]
-        data = data_orig[final_features]
-        dictionary = eval(contamination_df[contamination_df['sector'] == sector]['Best Parameters'].iloc[0])
-        data_orig[final_features + ['Anomaly', 'Anomaly_Score_Sector']] = get_anomalies(data, contamination=dictionary['contamination'])
-        df.update(data_orig[['Anomaly', 'Anomaly_Score_Sector']])
-    df.rename(columns={'Anomaly': 'Anomaly_Sector'}, inplace=True)
-    return df
-
-# Function to detect cluster-specific anomalies
-def detect_cluster_anomalies(df):
-    results = []
-    clusters = sorted(list(df['Cluster'].unique()))
-    features = ['Active_energy', 'Reactive_energy', 'Voltaje_FA', 'Voltaje_FC', 'Factor_Potencia']
-    time_features = ['Dia_Sin', 'Dia_Cos', 'Hora_Sin', 'Hora_Cos', 'Mes_Sin', 'Mes_Cos']
-    final_features = features + time_features
-    df['Anomaly_Score_Cluster'] = pd.NA
-    df['Anomaly'] = pd.NA
-    for cluster in clusters:
-        data_orig = df[df['Cluster'] == cluster]
-        data = data_orig[final_features]
-        data_orig[final_features + ['Anomaly', 'Anomaly_Score_Cluster']] = get_anomalies(data)
-        df.update(data_orig[['Anomaly', 'Anomaly_Score_Cluster']])
-    df.rename(columns={'Anomaly': 'Anomaly_Cluster'}, inplace=True)
-    return df
 
 # Function to select directory using tkinter
 def select_directory(prompt):
@@ -204,15 +195,30 @@ def threaded_main(progress_label, start_button):
         start_button.config(state=tk.NORMAL)
         progress_label.config(text="")
 
+# Function to show splash screen
+def show_splash_screen():
+    splash = tk.Toplevel()
+    splash.title("Loading...")
+    splash.geometry("400x300")
+    tk.Label(splash, text="Universidad de Los Andes", font=("Helvetica", 16)).pack(pady=20)
+    tk.Label(splash, text="ElectroDunas", font=("Helvetica", 16)).pack(pady=20)
+    tk.Label(splash, text=f"Factor de Contaminación: {contamination_factor}", font=("Helvetica", 16)).pack(pady=20)
+    tk.Label(splash, text=f"Clusters: {num_clusters}", font=("Helvetica", 16)).pack(pady=20)
+    return splash
+
 # Function to create the main GUI window
 def create_gui():
     root = tk.Tk()
     root.title("Data Processing Pipeline")
 
-     # Maximize the window
+    splash = show_splash_screen()    
+    # Maximize the window
     root.state('zoomed')
     
     tk.Label(root, text="Data Processing Pipeline", font=("Helvetica", 16)).pack(pady=40)
+    tk.Label(root, text=f"Factor de Contaminación: {contamination_factor}", font=("Helvetica", 12)).pack(pady=20)
+    tk.Label(root, text=f"Clusters: {num_clusters}", font=("Helvetica", 12)).pack(pady=20)
+    
     progress_label = tk.Label(root, text="", font=("Helvetica", 12))
     progress_label.pack(pady=10)
 
@@ -223,6 +229,7 @@ def create_gui():
     start_button = tk.Button(root, text="Start Processing", command=on_start, font=("Helvetica", 12))
     start_button.pack(pady=20)
 
+    root.after(3000, splash.destroy)
     root.mainloop()
 
 if __name__ == "__main__":
